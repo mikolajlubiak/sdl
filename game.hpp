@@ -1,8 +1,13 @@
+#pragma once
+
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <string>
 #include <filesystem>
 #include <unordered_map>
+
+#include "texture_manager.hpp"
+#include "player.hpp"
 
 class Game {
 	public:
@@ -35,9 +40,17 @@ class Game {
 			success &= initSDL(SDL_INIT_TIMER | SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS);
 			success &= initWindow("game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 640, 480, SDL_WINDOW_SHOWN);
 			success &= initRenderer(0, SDL_RENDERER_ACCELERATED);
+			textureManager = TextureManager::Instance(renderer);
 
-			SDL_Texture* puma_texture = createTexture(std::filesystem::path("spritelib_gpl")/"platform"/"char9.png");
-			textures.emplace("puma", puma_texture);
+			success &= textureManager->createTexture(std::filesystem::path("spritelib_gpl")/"platform"/"char9.png", "puma");
+
+			SDL_Rect frame;
+			frame.x = 0;
+			frame.y = 35;
+			frame.w = 128;
+			frame.h = 96;
+
+			player = new Player("puma", frame, 6);
 
 			return success;
 		}
@@ -65,28 +78,19 @@ class Game {
 		}
 
 		void update() {
+			player->update();
 		}
 
 		void render() {
 			SDL_RenderClear(renderer);
 
-			SDL_Rect frame;
-			frame.x = 0;
-			frame.y = 35;
-			frame.w = 128;
-			frame.h = 96;
-
-			drawSpriteSheet(textures.at("puma"), &frame, 6, frameIndex);
+			player->draw(renderer, frameIndex);
 
 			SDL_RenderPresent(renderer);
 		}
 
 		void clean() {
 			SDL_Log("Entered clean function");
-
-			for (auto& tex : textures) {
-				SDL_DestroyTexture(tex.second);
-			}
 
 			SDL_DestroyRenderer(renderer);
 			SDL_DestroyWindow(window);
@@ -126,42 +130,8 @@ class Game {
 			return true;
 		}
 
-		SDL_Texture* createTexture(const std::filesystem::path& path) {
-			SDL_Surface* tempSurface = IMG_Load(path.c_str());
 
-			SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, tempSurface);
-
-			SDL_FreeSurface(tempSurface);
-
-			return texture;
-		}
-
-		SDL_Rect createTextureRect(SDL_Texture* texture) {
-			SDL_Rect rect{};
-			SDL_QueryTexture(texture, nullptr, nullptr, &rect.w, &rect.h);
-
-			return rect;
-		}
-
-		void drawTexture(SDL_Texture* texture, SDL_Rect* src = nullptr, SDL_Rect* dest = nullptr) {
-			SDL_RenderCopy(renderer, texture, src, dest);
-		}
-
-		void drawSpriteSheet(SDL_Texture* texture, SDL_Rect* frame, uint32_t frames, uint32_t frameIndex) {
-			SDL_Rect textureRect = createTextureRect(texture);
-			SDL_Rect src = *frame;
-
-			frameIndex %= frames;
-			uint32_t horizontalIndex = frameIndex % (textureRect.w / src.w - 1);
-			uint32_t verticalIndex = (frameIndex / (textureRect.w / src.w - 1)) % (textureRect.h / src.h);
-
-			src.x += src.w * horizontalIndex;
-			src.y += (src.h + src.y) * verticalIndex;
-
-			drawTexture(texture, &src, nullptr);
-		}
-
-		void LogRect(SDL_Rect& rect) {
+		void logRect(SDL_Rect& rect) {
 			SDL_Log("%u, %u, %u, %u", rect.x, rect.y, rect.w, rect.h);
 		}
 
@@ -177,6 +147,9 @@ class Game {
 		bool running = false;
 		uint64_t frameIndex = 0;
 
-		// Draw
-		std::unordered_map<std::string, SDL_Texture*> textures;
+		// Texture manager
+		TextureManager* textureManager;
+
+		// Entities
+		Player* player;
 };
