@@ -12,11 +12,11 @@ class GameObject {
 			position.h = textureSrc.h;
 		}
 
-		void draw(SDL_Renderer* renderer, uint32_t frameIndex) {
+		virtual void draw(SDL_Renderer* renderer, uint32_t frameIndex) {
 			TextureManager::Instance(renderer)->drawSpriteSheet(textureID, &textureSrc, &position, frames, frameIndex);
 		}
 
-		void update() {
+		virtual void update() {
 			position.x++;
 		};
 

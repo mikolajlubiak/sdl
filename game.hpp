@@ -5,6 +5,7 @@
 #include <string>
 #include <filesystem>
 #include <unordered_map>
+#include <vector>
 
 #include "texture_manager.hpp"
 #include "player.hpp"
@@ -50,7 +51,7 @@ class Game {
 			frame.w = 128;
 			frame.h = 96;
 
-			player = new Player("puma", frame, 6);
+			gameObjects.push_back(new Player("puma", frame, 6));
 
 			return success;
 		}
@@ -78,13 +79,17 @@ class Game {
 		}
 
 		void update() {
-			player->update();
+			for (auto obj : gameObjects) {
+				obj->update();
+			}
 		}
 
 		void render() {
 			SDL_RenderClear(renderer);
 
-			player->draw(renderer, frameIndex);
+			for (auto obj : gameObjects) {
+				obj->draw(renderer, frameIndex);
+			}
 
 			SDL_RenderPresent(renderer);
 		}
@@ -145,11 +150,11 @@ class Game {
 
 		// Game loop
 		bool running = false;
-		uint64_t frameIndex = 0;
+		uint32_t frameIndex = 0;
 
 		// Texture manager
 		TextureManager* textureManager;
 
 		// Entities
-		Player* player;
+		std::vector<GameObject*> gameObjects;
 };
